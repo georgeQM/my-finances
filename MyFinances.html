@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>My Finances — Cashflow for Casual Work</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root {
+  --ink: #1c1917;
+  --paper: #faf7f2;
+  --paper2: #f0ebe2;
+  --paper3: #e5ddd0;
+  --muted: #9c9289;
+  --muted2: #c5bdb4;
+  --line: #ddd6cc;
+  --amber: #c97c2a; --amber-l: #fdf0df;
+  --green: #2e7d52; --green-l: #e6f4ed;
+  --red:   #b84040; --red-l:   #fdeaea;
+  --blue:  #2a5fa0; --blue-l:  #e6eef8;
+  --teal:  #2a7a7a; --teal-l:  #e6f4f4;
+  --rose:  #9c3d6a; --rose-l:  #f8e6f0;
+  --violet:#5a3a9a; --violet-l:#ede6f8;
+  --rust:  #9a4a2a; --rust-l:  #f8ede6;
+  --sage:  #4a7a4a; --sage-l:  #e6f4e6;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html { background: var(--ink); }
+body {
+  background: var(--paper); color: var(--ink);
+  font-family: 'Syne', sans-serif; font-size: 14px;
+  min-height: 100vh; max-width: 430px; margin: 0 auto;
+  position: relative; overflow-x: hidden;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  background: var(--ink); color: var(--paper);
+  padding: 20px 20px 18px;
+  position: sticky; top: 0; z-index: 40;
+}
+.topbar-row1 { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; }
+.app-name { font-family: 'Instrument Serif', serif; font-size: 26px; letter-spacing: -0.5px; line-height: 1; }
+.app-tagline { font-size: 10px; color: var(--muted); letter-spacing: 0.1em; text-transform: uppercase; margin-top: 3px; }
+
+.topbar-actions { display: flex; gap: 8px; align-items: center; }
+
+.sync-status {
+  display: flex; align-items: center; gap: 5px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 6px 10px;
+  border-radius: 8px; border: 1px solid #333;
+  cursor: pointer; transition: border-color 0.15s;
+  white-space: nowrap;
+}
+.sync-status:hover { border-color: #666; }
+.sync-status .ss-dot { width: 6px; height: 6px; border-radius: 50%; }
+.sync-status.synced  { color: #5ec98a; border-color: #1a3a28; }
+.sync-status.synced .ss-dot { background: #5ec98a; }
+.sync-status.pending { color: var(--amber); border-color: #3a2e18; }
+.sync-status.pending .ss-dot { background: var(--amber); animation: pulse 1.2s infinite; }
+.sync-status.offline { color: var(--muted); }
+.sync-status.offline .ss-dot { background: var(--muted); }
+.sync-status.error   { color: #e07070; border-color: #3a1818; }
+.sync-status.error .ss-dot { background: #e07070; }
+
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.icon-btn {
+  background: none; border: 1px solid #333; border-radius: 8px;
+  color: var(--muted); font-size: 16px;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: border-color 0.15s;
+}
+.icon-btn:hover { border-color: var(--muted); }
+
+.balance-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.bal-pill { background: #272420; border-radius: 10px; padding: 10px 10px 8px; }
+.bal-pill .bl { font-size: 10px; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; }
+.bal-pill .bv { font-family: 'Instrument Serif', serif; font-size: 18px; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bv.green { color: #5ec98a; } .bv.amber { color: #e8a84a; } .bv.red { color: #e07070; } .bv.ink { color: var(--paper); }
+
+/* ── NAV ── */
+.nav {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  background: var(--paper2); border-bottom: 1px solid var(--line);
+  position: sticky; top: 138px; z-index: 39;
+}
+.nav-btn {
+  padding: 11px 4px; border: none; background: none;
+  font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 600;
+  letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted);
+  cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+}
+.nav-btn .nav-icon { font-size: 16px; }
+.nav-btn.active { color: var(--ink); border-bottom-color: var(--ink); }
+
+/* ── PAGES ── */
+.page { display: none; padding: 16px 16px 100px; }
+.page.active { display: block; }
+
+.sec-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--muted); margin-bottom: 10px; padding-left: 2px;
+}
+
+/* ── BUCKET CARDS ── */
+.bucket-card {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 14px; padding: 14px 14px 12px;
+  margin-bottom: 10px; position: relative; overflow: hidden;
+}
+.bucket-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.bucket-left { display: flex; align-items: center; gap: 10px; }
+.bucket-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.bucket-name { font-size: 13px; font-weight: 600; line-height: 1.2; }
+.bucket-pct  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+.bucket-right { text-align: right; }
+.bucket-balance { font-family: 'Instrument Serif', serif; font-size: 22px; line-height: 1; }
+.bucket-spent { font-size: 10px; color: var(--muted); margin-top: 2px; }
+.bucket-bar-track { height: 4px; background: var(--line); border-radius: 99px; overflow: hidden; }
+.bucket-bar-fill { height: 100%; border-radius: 99px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+
+/* ── ENTRY CARDS ── */
+.entry-card {
+  background: var(--paper); border: 1px solid var(--line);
+  border-radius: 12px; padding: 13px 14px; margin-bottom: 8px;
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 10px; position: relative; overflow: hidden;
+}
+.entry-card::before { content:''; position:absolute; left:0; top:0; bottom:0; width:3px; }
+.entry-card.pending::before  { background: var(--amber); }
+.entry-card.received::before { background: var(--green); }
+.entry-card.expense::before  { background: var(--red); }
+.entry-left { flex: 1; min-width: 0; }
+.entry-desc { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 3px; }
+.entry-meta { font-size: 11px; color: var(--muted); display: flex; gap: 8px; flex-wrap: wrap; }
+.chip { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; }
+.chip.pending  { background: var(--amber-l); color: var(--amber); }
+.chip.received { background: var(--green-l); color: var(--green); }
+.chip.expense  { background: var(--red-l);   color: var(--red); }
+.entry-right { text-align: right; flex-shrink: 0; }
+.entry-amount { font-family: 'Instrument Serif', serif; font-size: 18px; line-height: 1; margin-bottom: 4px; }
+.ea-plus { color: var(--green); } .ea-wait { color: var(--amber); } .ea-minus { color: var(--red); }
+.mark-btn {
+  display: block; font-family: 'Syne', sans-serif; font-size: 10px; font-weight: 700;
+  letter-spacing: 0.05em; padding: 4px 9px; border-radius: 7px;
+  border: 1px solid var(--green); background: var(--green-l); color: var(--green);
+  cursor: pointer; white-space: nowrap; transition: background 0.15s; margin-top: 4px;
+}
+.mark-btn:hover { background: #c5ead6; }
+.del-btn { background:none; border:none; color:var(--muted2); font-size:18px; cursor:pointer; line-height:1; padding:0 0 0 6px; transition:color 0.15s; flex-shrink:0; margin-top:-2px; }
+.del-btn:hover { color: var(--red); }
+
+/* ── ALERT BAR ── */
+.alert-bar {
+  background: var(--red-l); border: 1px solid #e9b9b9; border-radius: 10px;
+  padding: 10px 14px; margin-bottom: 14px; font-size: 12px; color: var(--red); display: none;
+}
+.alert-bar.show { display: block; }
+
+/* ── SETTINGS ── */
+.settings-section { margin-bottom: 24px; }
+.settings-section h3 { font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 10px; }
+.settings-section p  { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+
+.bucket-setting-row {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 14px; background: var(--paper2); border-radius: 10px; margin-bottom: 6px;
+}
+.bsr-left { display: flex; align-items: center; gap: 10px; }
+.bsr-dot  { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.bsr-name { font-size: 13px; font-weight: 600; }
+.pct-input { width: 60px; text-align: right; background: var(--paper); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--ink); outline: none; }
+.pct-input:focus { border-color: var(--ink); }
+.pct-total { text-align: right; font-size: 12px; font-weight: 700; color: var(--muted); margin-top: 6px; padding-right: 2px; }
+.pct-total.ok { color: var(--green); } .pct-total.warn { color: var(--red); }
+
+/* ── GOOGLE DRIVE SECTION ── */
+.drive-card {
+  border: 1px solid var(--line); border-radius: 14px; overflow: hidden; margin-bottom: 16px;
+}
+.drive-card-header {
+  background: var(--paper2); padding: 14px 16px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+}
+.drive-card-header .dch-left { display: flex; align-items: center; gap: 10px; }
+.drive-logo { font-size: 22px; }
+.dch-title { font-size: 13px; font-weight: 700; }
+.dch-sub   { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+.drive-card-body { padding: 14px 16px; }
+.drive-card-body p { font-size: 12px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+
+.drive-input-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.drive-input {
+  flex: 1; background: var(--paper2); border: 1px solid var(--line); border-radius: 10px;
+  padding: 11px 12px; font-family: 'Syne', sans-serif; font-size: 12px; color: var(--ink);
+  outline: none; transition: border-color 0.15s;
+}
+.drive-input:focus { border-color: var(--ink); }
+.drive-input::placeholder { color: var(--muted2); }
+
+.btn-sm {
+  padding: 10px 16px; border-radius: 10px; border: none;
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; white-space: nowrap;
+  transition: opacity 0.15s;
+}
+.btn-sm:hover { opacity: 0.85; }
+.btn-sm.primary { background: var(--ink); color: var(--paper); }
+.btn-sm.ghost   { background: var(--paper2); color: var(--muted); border: 1px solid var(--line); }
+.btn-sm.danger  { background: var(--red-l); color: var(--red); border: 1px solid #e9b9b9; }
+.btn-sm.green   { background: var(--green-l); color: var(--green); border: 1px solid #b9dfc9; }
+
+.setup-steps { counter-reset: steps; }
+.setup-step {
+  display: flex; gap: 12px; margin-bottom: 14px; align-items: flex-start;
+}
+.step-num {
+  background: var(--ink); color: var(--paper);
+  width: 22px; height: 22px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; flex-shrink: 0; margin-top: 1px;
+}
+.step-text { font-size: 12px; color: var(--ink); line-height: 1.6; }
+.step-text a { color: var(--blue); }
+.step-text code {
+  background: var(--paper2); padding: 1px 6px; border-radius: 5px;
+  font-family: monospace; font-size: 11px;
+}
+
+.drive-status-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px; border-radius: 10px; font-size: 12px; margin-bottom: 10px;
+}
+.drive-status-row.ok   { background: var(--green-l); color: var(--green); }
+.drive-status-row.warn { background: var(--amber-l); color: var(--amber); }
+.drive-status-row.err  { background: var(--red-l);   color: var(--red); }
+
+/* ── FAB ── */
+.fab {
+  position: fixed; bottom: 24px; right: 50%; transform: translateX(50%);
+  z-index: 50; background: var(--ink); color: var(--paper); border: none;
+  border-radius: 50px; padding: 14px 28px;
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; cursor: pointer;
+  box-shadow: 0 4px 24px rgba(28,25,23,0.25);
+  display: flex; align-items: center; gap: 8px;
+  transition: transform 0.15s, box-shadow 0.15s; white-space: nowrap;
+}
+.fab:hover { transform: translateX(50%) scale(1.04); box-shadow: 0 6px 32px rgba(28,25,23,0.35); }
+.fab .fi { font-size: 18px; }
+
+/* ── DRAWER ── */
+.overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); backdrop-filter: blur(3px);
+  z-index: 60; align-items: flex-end; justify-content: center;
+}
+.overlay.open { display: flex; }
+.drawer {
+  background: var(--paper); border-radius: 20px 20px 0 0;
+  padding: 6px 20px 40px; width: 100%; max-width: 430px;
+  animation: drawerUp 0.28s cubic-bezier(.4,0,.2,1);
+  max-height: 92vh; overflow-y: auto;
+}
+.drawer-handle { width: 36px; height: 4px; background: var(--line); border-radius: 99px; margin: 10px auto 18px; }
+@keyframes drawerUp { from { transform: translateY(40px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.drawer h2 { font-family: 'Instrument Serif', serif; font-size: 22px; font-weight: 400; margin-bottom: 20px; letter-spacing: -0.3px; }
+.type-pills { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 18px; }
+.type-pill {
+  padding: 10px 6px; border-radius: 12px; border: 2px solid var(--line);
+  background: none; font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); cursor: pointer;
+  text-align: center; transition: all 0.15s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.type-pill .tp-icon { font-size: 20px; }
+.type-pill.sel-pending  { border-color: var(--amber); background: var(--amber-l); color: var(--amber); }
+.type-pill.sel-received { border-color: var(--green); background: var(--green-l); color: var(--green); }
+.type-pill.sel-expense  { border-color: var(--red);   background: var(--red-l);   color: var(--red); }
+.fgroup { margin-bottom: 14px; }
+.fgroup label { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+.fgroup input, .fgroup select { width: 100%; background: var(--paper2); border: 1px solid var(--line); border-radius: 10px; padding: 13px 14px; font-family: 'Syne', sans-serif; font-size: 15px; color: var(--ink); outline: none; -webkit-appearance: none; transition: border-color 0.15s; }
+.fgroup input:focus, .fgroup select:focus { border-color: var(--ink); }
+.fgroup select option { background: var(--paper2); }
+#f-amount { font-family: 'Instrument Serif', serif; font-size: 32px; text-align: center; padding: 16px; }
+.drawer-split { background: var(--paper2); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+.ds-title { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+.ds-row   { display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; color: var(--muted); }
+.ds-row span:last-child { font-weight: 700; color: var(--ink); }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; }
+.btn { flex: 1; padding: 15px; border-radius: 12px; border: none; font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; cursor: pointer; transition: opacity 0.15s; }
+.btn:hover { opacity: 0.85; }
+.btn-primary { background: var(--ink); color: var(--paper); }
+.btn-ghost   { background: var(--paper2); color: var(--muted); }
+.bucket-spend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.bsg-item { border: 2px solid var(--line); border-radius: 12px; padding: 10px 12px; cursor: pointer; transition: border-color 0.15s; display: flex; align-items: center; gap: 8px; }
+.bsg-item.selected { border-color: var(--ink); background: var(--paper2); }
+.bsg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.bsg-info { min-width: 0; }
+.bsg-name { font-size: 12px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bsg-bal  { font-size: 11px; color: var(--muted); }
+.empty-state { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-state .ei { font-size: 36px; margin-bottom: 10px; }
+.empty-state p { font-size: 13px; line-height: 1.7; }
+
+/* toast */
+.toast {
+  position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+  background: var(--ink); color: var(--paper);
+  padding: 10px 20px; border-radius: 99px;
+  font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+  z-index: 200; white-space: nowrap;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.toast.show { opacity: 1; }
+
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 99px; }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-row1">
+    <div>
+      <div class="app-name">Float</div>
+      <div class="app-tagline">Casual income · smart split</div>
+    </div>
+    <div class="topbar-actions">
+      <div class="sync-status offline" id="sync-status" onclick="manualSync()" title="Tap to sync">
+        <div class="ss-dot"></div>
+        <span id="sync-label">Not connected</span>
+      </div>
+      <button class="icon-btn" onclick="goPage('settings')" title="Settings">⚙</button>
+    </div>
+  </div>
+  <div class="balance-row">
+    <div class="bal-pill"><div class="bl">In hand</div><div class="bv green" id="hdr-inhand">$0</div></div>
+    <div class="bal-pill"><div class="bl">Pending</div><div class="bv amber" id="hdr-pending">$0</div></div>
+    <div class="bal-pill"><div class="bl">Allocated</div><div class="bv ink" id="hdr-allocated">$0</div></div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <button class="nav-btn active" onclick="goPage('buckets')"  id="nav-buckets"><span class="nav-icon">🪣</span>Buckets</button>
+  <button class="nav-btn"        onclick="goPage('income')"   id="nav-income"><span class="nav-icon">💼</span>Jobs</button>
+  <button class="nav-btn"        onclick="goPage('history')"  id="nav-history"><span class="nav-icon">📋</span>History</button>
+  <button class="nav-btn"        onclick="goPage('settings')" id="nav-settings"><span class="nav-icon">⚙️</span>Settings</button>
+</nav>
+
+<!-- PAGE: BUCKETS -->
+<div class="page active" id="page-buckets">
+  <div style="margin-bottom:14px;">
+    <div class="sec-label">Your money buckets</div>
+    <div class="alert-bar" id="overspend-alert">⚠️ You're spending money you haven't received yet.</div>
+  </div>
+  <div id="buckets-list"></div>
+</div>
+
+<!-- PAGE: JOBS -->
+<div class="page" id="page-income">
+  <div class="sec-label">Jobs & income</div>
+  <div id="income-list"></div>
+</div>
+
+<!-- PAGE: HISTORY -->
+<div class="page" id="page-history">
+  <div class="sec-label">Spending history</div>
+  <div id="history-list"></div>
+</div>
+
+<!-- PAGE: SETTINGS -->
+<div class="page" id="page-settings">
+
+  <!-- GOOGLE DRIVE CARD -->
+  <div class="settings-section">
+    <h3>Google Drive sync</h3>
+
+    <!-- NOT CONFIGURED -->
+    <div id="drive-setup-panel">
+      <div class="drive-card">
+        <div class="drive-card-header">
+          <div class="dch-left">
+            <div class="drive-logo">🔗</div>
+            <div>
+              <div class="dch-title">Connect Google Drive</div>
+              <div class="dch-sub">Auto-save your data to a file in Drive</div>
+            </div>
+          </div>
+        </div>
+        <div class="drive-card-body">
+          <p>You need a free Google API Client ID. It takes about 2 minutes to set up. Follow these steps:</p>
+          <div class="setup-steps">
+            <div class="setup-step">
+              <div class="step-num">1</div>
+              <div class="step-text">Go to <a href="https://console.cloud.google.com/" target="_blank">console.cloud.google.com</a> and create a new project (name it anything, e.g. "Float App").</div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num">2</div>
+              <div class="step-text">In the left menu go to <strong>APIs & Services → Library</strong>. Search for <strong>Google Drive API</strong> and click <strong>Enable</strong>.</div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num">3</div>
+              <div class="step-text">Go to <strong>APIs & Services → OAuth consent screen</strong>. Choose <strong>External</strong>, fill in an app name (e.g. "Float"), your email, and save.</div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num">4</div>
+              <div class="step-text">Go to <strong>Credentials → + Create Credentials → OAuth Client ID</strong>. Choose <strong>Web application</strong>. Under <em>Authorised JavaScript origins</em> add the URL where you open this file (or <code>null</code> if opening locally). Copy the <strong>Client ID</strong>.</div>
+            </div>
+            <div class="setup-step">
+              <div class="step-num">5</div>
+              <div class="step-text">Paste your Client ID below and tap Connect.</div>
+            </div>
+          </div>
+          <div class="drive-input-row">
+            <input class="drive-input" type="text" id="client-id-input" placeholder="Paste your Client ID here…">
+          </div>
+          <button class="btn-sm primary" style="width:100%" onclick="saveClientId()">Connect with Google Drive →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURED -->
+    <div id="drive-connected-panel" style="display:none;">
+      <div class="drive-card">
+        <div class="drive-card-header">
+          <div class="dch-left">
+            <div class="drive-logo">📂</div>
+            <div>
+              <div class="dch-title">Google Drive</div>
+              <div class="dch-sub" id="drive-user-label">Connected</div>
+            </div>
+          </div>
+          <button class="btn-sm green" onclick="manualSync()">↻ Sync</button>
+        </div>
+        <div class="drive-card-body">
+          <div class="drive-status-row ok" id="drive-status-msg">
+            ✓ Your data is saved to <strong>float-data.json</strong> in your Drive root.
+          </div>
+          <p style="margin-bottom:8px">Data auto-saves every time you add or change an entry. Tap ↻ Sync to force a save or reload from Drive.</p>
+          <button class="btn-sm danger" onclick="disconnectDrive()">Disconnect Drive</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BUCKET SPLITS -->
+  <div class="settings-section">
+    <h3>Bucket split percentages</h3>
+    <p>Every time you mark a job as <em>received</em>, the payment is auto-split into your buckets by these percentages.</p>
+    <div id="settings-buckets-list"></div>
+    <div class="pct-total" id="pct-total">Total: 100%</div>
+  </div>
+
+  <!-- DANGER -->
+  <div class="settings-section">
+    <h3>Danger zone</h3>
+    <button class="btn-sm danger" style="width:100%" onclick="clearAll()">🗑 Clear all data</button>
+  </div>
+</div>
+
+<!-- FAB -->
+<button class="fab" onclick="openDrawer()"><span class="fi">+</span> Log entry</button>
+
+<!-- DRAWER -->
+<div class="overlay" id="drawer-overlay" onclick="overlayClick(event)">
+  <div class="drawer" id="main-drawer">
+    <div class="drawer-handle"></div>
+    <h2 id="drawer-title">Log entry</h2>
+    <div class="type-pills">
+      <button class="type-pill sel-pending"  id="tp-pending"  onclick="setType('pending')"><span class="tp-icon">⏳</span>Job done</button>
+      <button class="type-pill"              id="tp-received" onclick="setType('received')"><span class="tp-icon">💰</span>Received</button>
+      <button class="type-pill"              id="tp-expense"  onclick="setType('expense')"><span class="tp-icon">💸</span>Spent</button>
+    </div>
+    <div class="fgroup"><label>Description</label><input type="text" id="f-desc" placeholder="e.g. Painted Smith's fence"></div>
+    <div class="fgroup"><label>Amount</label><input type="number" id="f-amount" placeholder="0" min="0" step="0.01" inputmode="decimal"></div>
+    <div class="fgroup" id="f-due-group"><label>Expected payment date</label><input type="date" id="f-due"></div>
+    <div id="f-bucket-group" style="display:none;">
+      <div class="fgroup"><label>Which bucket?</label></div>
+      <div class="bucket-spend-grid" id="bucket-selector"></div>
+    </div>
+    <div id="f-split-preview" style="display:none;">
+      <div class="drawer-split">
+        <div class="ds-title">Auto-split preview</div>
+        <div id="ds-rows"></div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-ghost" onclick="closeDrawer()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════
+// BUCKETS CONFIG
+// ═══════════════════════════════════
+const DEFAULT_BUCKETS = [
+  { id:'fixed',      name:'Fixed Expenses',  icon:'🏠', pct:25, color:'#2a5fa0' },
+  { id:'current',    name:'Current Expenses', icon:'🛒', pct:20, color:'#2e7d52' },
+  { id:'investments',name:'Investments',      icon:'📈', pct:10, color:'#5a3a9a' },
+  { id:'education',  name:'Education',        icon:'📚', pct:5,  color:'#2a7a7a' },
+  { id:'largepurch', name:'Larger Purchases', icon:'🛍️', pct:10, color:'#9a4a2a' },
+  { id:'helping',    name:'Helping Others',   icon:'🤝', pct:5,  color:'#9c3d6a' },
+  { id:'experiences',name:'Experiences',      icon:'✈️', pct:10, color:'#c97c2a' },
+  { id:'emergency',  name:'Emergencies',      icon:'🛡️', pct:10, color:'#4a7a4a' },
+  { id:'health',     name:'Health',           icon:'❤️', pct:5,  color:'#b84040' },
+];
+
+// ═══════════════════════════════════
+// LOCAL STATE
+// ═══════════════════════════════════
+const SK = 'float_v3';
+const CK = 'float_client_id';
+const TK = 'float_gtoken';
+
+function loadState() {
+  try { return JSON.parse(localStorage.getItem(SK)) || newState(); }
+  catch { return newState(); }
+}
+function newState() {
+  return {
+    buckets: DEFAULT_BUCKETS.map(b => ({ ...b })),
+    entries: [],
+    bucketBalances: Object.fromEntries(DEFAULT_BUCKETS.map(b => [b.id, 0])),
+  };
+}
+function saveLocal() { localStorage.setItem(SK, JSON.stringify(S)); }
+
+let S = loadState();
+if (!S.bucketBalances) S.bucketBalances = Object.fromEntries(S.buckets.map(b => [b.id, 0]));
+
+// ═══════════════════════════════════
+// GOOGLE DRIVE SYNC
+// ═══════════════════════════════════
+let gToken = null;
+let driveFileId = null;
+let syncTimeout = null;
+const FILE_NAME = 'float-data.json';
+
+function getClientId() { return localStorage.getItem(CK) || ''; }
+
+function saveClientId() {
+  const val = document.getElementById('client-id-input').value.trim();
+  if (!val) { showToast('Please paste your Client ID first'); return; }
+  localStorage.setItem(CK, val);
+  initGoogleAuth();
+}
+
+function disconnectDrive() {
+  if (!confirm('Disconnect Google Drive? Your local data stays intact.')) return;
+  gToken = null; driveFileId = null;
+  localStorage.removeItem(CK);
+  localStorage.removeItem(TK);
+  updateDriveUI();
+  setSyncStatus('offline', 'Not connected');
+}
+
+function initGoogleAuth() {
+  const clientId = getClientId();
+  if (!clientId) { updateDriveUI(); return; }
+
+  if (typeof google === 'undefined') {
+    // GSI not loaded yet — retry
+    setTimeout(initGoogleAuth, 500); return;
+  }
+
+  updateDriveUI();
+
+  google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (resp) => {
+      if (resp.error) { setSyncStatus('error', 'Auth failed'); return; }
+      gToken = resp.access_token;
+      setSyncStatus('pending', 'Syncing…');
+      syncWithDrive();
+    },
+  }).requestAccessToken({ prompt: '' }); // try silent first
+
+  // Also set up a token client for explicit sign-in requests
+  window._tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: clientId,
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: (resp) => {
+      if (resp.error) { setSyncStatus('error', 'Auth failed'); showToast('Auth error: ' + resp.error); return; }
+      gToken = resp.access_token;
+      setSyncStatus('pending', 'Syncing…');
+      syncWithDrive();
+    },
+  });
+}
+
+function requestSignIn() {
+  if (!window._tokenClient) { showToast('Set up Client ID first'); return; }
+  window._tokenClient.requestAccessToken();
+}
+
+async function syncWithDrive() {
+  if (!gToken) { requestSignIn(); return; }
+  setSyncStatus('pending', 'Syncing…');
+  try {
+    // 1. find or create the file
+    if (!driveFileId) {
+      driveFileId = await findOrCreateFile();
+    }
+    // 2. load remote data and merge (remote wins for older data)
+    const remote = await loadFromDrive(driveFileId);
+    if (remote) {
+      const merged = mergeStates(S, remote);
+      S = merged;
+      saveLocal();
+      renderAll();
+    }
+    // 3. push current state
+    await saveToDrive(driveFileId, S);
+    setSyncStatus('synced', 'Saved to Drive');
+    updateDriveConnectedPanel('Synced just now');
+  } catch(e) {
+    console.error(e);
+    if (e.status === 401) { gToken = null; requestSignIn(); }
+    else { setSyncStatus('error', 'Sync failed'); }
+  }
+}
+
+async function findOrCreateFile() {
+  const res = await gFetch(`https://www.googleapis.com/drive/v3/files?q=name='${FILE_NAME}' and trashed=false&fields=files(id,name)&spaces=drive`);
+  const data = await res.json();
+  if (data.files && data.files.length > 0) return data.files[0].id;
+  // create
+  const meta = { name: FILE_NAME, mimeType: 'application/json' };
+  const cr = await gFetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(meta),
+  });
+  const created = await cr.json();
+  return created.id;
+}
+
+async function loadFromDrive(fileId) {
+  try {
+    const res = await gFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
+    if (!res.ok) return null;
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch { return null; }
+}
+
+async function saveToDrive(fileId, data) {
+  const blob = new Blob([JSON.stringify(data)], { type: 'application/json' });
+  const res = await gFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: blob,
+  });
+  if (!res.ok) throw { status: res.status };
+}
+
+function gFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  opts.headers['Authorization'] = 'Bearer ' + gToken;
+  return fetch(url, opts);
+}
+
+// simple merge: take entries union by id, keep highest-id bucket balances
+function mergeStates(local, remote) {
+  const allEntries = [...local.entries];
+  const localIds = new Set(local.entries.map(e => e.id));
+  for (const e of (remote.entries || [])) {
+    if (!localIds.has(e.id)) allEntries.push(e);
+  }
+  // use remote bucket balances if remote is "newer" (more entries)
+  const balances = remote.entries?.length > local.entries.length
+    ? remote.bucketBalances : local.bucketBalances;
+  const buckets = local.buckets; // always keep local bucket config (user may have changed pcts)
+  return { buckets, entries: allEntries, bucketBalances: balances || local.bucketBalances };
+}
+
+// debounced auto-save
+function scheduleSync() {
+  if (!gToken) return;
+  clearTimeout(syncTimeout);
+  setSyncStatus('pending', 'Unsaved…');
+  syncTimeout = setTimeout(syncWithDrive, 2500);
+}
+
+function manualSync() {
+  if (!getClientId()) { goPage('settings'); showToast('Connect Drive in Settings first'); return; }
+  if (!gToken) { requestSignIn(); return; }
+  syncWithDrive();
+}
+
+// ── Drive UI helpers ──
+function updateDriveUI() {
+  const has = !!getClientId();
+  document.getElementById('drive-setup-panel').style.display     = has ? 'none' : '';
+  document.getElementById('drive-connected-panel').style.display = has ? ''     : 'none';
+}
+function updateDriveConnectedPanel(sublabel) {
+  document.getElementById('drive-user-label').textContent = sublabel || 'Connected';
+}
+function setSyncStatus(state, label) {
+  const el = document.getElementById('sync-status');
+  el.className = 'sync-status ' + state;
+  document.getElementById('sync-label').textContent = label;
+}
+
+// ═══════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════
+function fmt(n) {
+  const abs = Math.abs(n || 0);
+  return (n < 0 ? '-' : '') + '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+}
+function fmtDate(iso) { return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function totalInHand() {
+  return S.entries.filter(e => e.type === 'received').reduce((s,e) => s+e.amount, 0)
+       - S.entries.filter(e => e.type === 'expense').reduce((s,e) => s+e.amount, 0);
+}
+function totalPending()   { return S.entries.filter(e => e.type === 'pending').reduce((s,e) => s+e.amount, 0); }
+function totalAllocated() { return Object.values(S.bucketBalances).reduce((s,v) => s+v, 0); }
+function getBucket(id)    { return S.buckets.find(b => b.id === id); }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════
+// RENDER
+// ═══════════════════════════════════
+function renderHeader() {
+  const inhand = totalInHand();
+  document.getElementById('hdr-inhand').textContent    = fmt(Math.max(0, inhand));
+  document.getElementById('hdr-pending').textContent   = fmt(totalPending());
+  document.getElementById('hdr-allocated').textContent = fmt(totalAllocated());
+  document.getElementById('overspend-alert').classList.toggle('show', inhand < 0);
+}
+
+function renderBuckets() {
+  const container = document.getElementById('buckets-list');
+  const totalAlloc = totalAllocated();
+  if (totalAlloc === 0 && !S.entries.find(e => e.type === 'received')) {
+    container.innerHTML = `<div class="empty-state"><div class="ei">💼</div><p>Log a completed job, mark it received —<br>your money will auto-split into buckets.</p></div>`;
+    return;
+  }
+  container.innerHTML = S.buckets.map(b => {
+    const bal  = S.bucketBalances[b.id] || 0;
+    const spent = S.entries.filter(e => e.type === 'expense' && e.bucketId === b.id).reduce((s,e) => s+e.amount, 0);
+    const deposited = bal + spent;
+    const pct  = deposited > 0 ? Math.min((spent / deposited) * 100, 100) : 0;
+    const over = bal < 0;
+    return `<div class="bucket-card">
+      <div class="bucket-top">
+        <div class="bucket-left">
+          <div class="bucket-dot" style="background:${b.color}"></div>
+          <div><div class="bucket-name">${b.icon} ${b.name}</div><div class="bucket-pct">${b.pct}% of each payment</div></div>
+        </div>
+        <div class="bucket-right">
+          <div class="bucket-balance" style="color:${over ? '#b84040' : b.color}">${fmt(bal)}</div>
+          <div class="bucket-spent">spent ${fmt(spent)}</div>
+        </div>
+      </div>
+      <div class="bucket-bar-track"><div class="bucket-bar-fill" style="width:${pct}%;background:${over ? '#b84040' : b.color}"></div></div>
+    </div>`;
+  }).join('');
+}
+
+function renderIncome() {
+  const container = document.getElementById('income-list');
+  const entries = S.entries.filter(e => e.type === 'pending' || e.type === 'received')
+    .sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (!entries.length) { container.innerHTML = `<div class="empty-state"><div class="ei">🔨</div><p>Log your first job here.<br>Tap <strong>+ Log entry</strong> below.</p></div>`; return; }
+  container.innerHTML = entries.map(e => `
+    <div class="entry-card ${e.type}">
+      <div class="entry-left">
+        <div class="entry-desc">${e.desc}</div>
+        <div class="entry-meta"><span>${fmtDate(e.createdAt)}</span>${e.type==='pending'&&e.dueDate?`<span>due ${e.dueDate}</span>`:''}</div>
+        <div style="margin-top:6px"><span class="chip ${e.type}">${e.type==='pending'?'⏳ Pending':'✓ Received'}</span></div>
+        ${e.type==='pending'?`<button class="mark-btn" onclick="markReceived('${e.id}')">✓ Mark as received</button>`:''}
+      </div>
+      <div class="entry-right">
+        <div class="entry-amount ${e.type==='received'?'ea-plus':'ea-wait'}">+${fmt(e.amount)}</div>
+        <button class="del-btn" onclick="deleteEntry('${e.id}')">×</button>
+      </div>
+    </div>`).join('');
+}
+
+function renderHistory() {
+  const container = document.getElementById('history-list');
+  const entries = S.entries.filter(e => e.type === 'expense').sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
+  if (!entries.length) { container.innerHTML = `<div class="empty-state"><div class="ei">🧾</div><p>No expenses yet.<br>Tap <strong>+ Log entry</strong> to track spending.</p></div>`; return; }
+  container.innerHTML = entries.map(e => {
+    const b = getBucket(e.bucketId);
+    return `<div class="entry-card expense">
+      <div class="entry-left">
+        <div class="entry-desc">${b?b.icon:'📦'} ${e.desc}</div>
+        <div class="entry-meta"><span>${fmtDate(e.createdAt)}</span>${b?`<span>${b.name}</span>`:''}</div>
+      </div>
+      <div class="entry-right">
+        <div class="entry-amount ea-minus">-${fmt(e.amount)}</div>
+        <button class="del-btn" onclick="deleteEntry('${e.id}')">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderSettings() {
+  document.getElementById('settings-buckets-list').innerHTML = S.buckets.map(b => `
+    <div class="bucket-setting-row">
+      <div class="bsr-left"><div class="bsr-dot" style="background:${b.color}"></div><div class="bsr-name">${b.icon} ${b.name}</div></div>
+      <input class="pct-input" type="number" min="0" max="100" value="${b.pct}" onchange="updatePct('${b.id}',this.value)" oninput="recalcPctTotal()"> %
+    </div>`).join('');
+  recalcPctTotal();
+  updateDriveUI();
+}
+
+function recalcPctTotal() {
+  let total = 0;
+  document.querySelectorAll('.pct-input').forEach(i => total += parseFloat(i.value)||0);
+  const el = document.getElementById('pct-total');
+  el.textContent = `Total: ${total}%`;
+  el.className = 'pct-total ' + (total === 100 ? 'ok' : 'warn');
+}
+
+function updatePct(id, val) {
+  const b = getBucket(id); if (b) b.pct = parseFloat(val)||0;
+  save(); recalcPctTotal();
+}
+
+// ═══════════════════════════════════
+// ACTIONS
+// ═══════════════════════════════════
+function markReceived(id) {
+  const entry = S.entries.find(e => e.id === id); if (!entry) return;
+  entry.type = 'received';
+  S.buckets.forEach(b => { S.bucketBalances[b.id] = (S.bucketBalances[b.id]||0) + entry.amount*(b.pct/100); });
+  save(); renderAll();
+  showToast('💰 Payment split across buckets!');
+}
+
+function deleteEntry(id) {
+  const entry = S.entries.find(e => e.id === id); if (!entry) return;
+  if (entry.type === 'received') S.buckets.forEach(b => { S.bucketBalances[b.id] = (S.bucketBalances[b.id]||0) - entry.amount*(b.pct/100); });
+  if (entry.type === 'expense' && entry.bucketId) S.bucketBalances[entry.bucketId] = (S.bucketBalances[entry.bucketId]||0) + entry.amount;
+  S.entries = S.entries.filter(e => e.id !== id);
+  save(); renderAll();
+}
+
+function clearAll() {
+  if (confirm('Clear all data? This cannot be undone.')) { S = newState(); save(); renderAll(); }
+}
+
+// ═══════════════════════════════════
+// SAVE (local + schedule drive sync)
+// ═══════════════════════════════════
+function save() { saveLocal(); scheduleSync(); }
+
+// ═══════════════════════════════════
+// DRAWER
+// ═══════════════════════════════════
+let currentType = 'pending';
+let selectedBucketId = null;
+
+function openDrawer() {
+  document.getElementById('drawer-overlay').classList.add('open');
+  document.getElementById('f-desc').value = '';
+  document.getElementById('f-amount').value = '';
+  document.getElementById('f-due').value = '';
+  selectedBucketId = S.buckets[0]?.id || null;
+  setType('pending');
+}
+function closeDrawer() { document.getElementById('drawer-overlay').classList.remove('open'); }
+function overlayClick(e) { if (e.target.id === 'drawer-overlay') closeDrawer(); }
+
+function setType(t) {
+  currentType = t;
+  ['pending','received','expense'].forEach(k => {
+    document.getElementById('tp-'+k).className = 'type-pill' + (k===t ? ` sel-${k}` : '');
+  });
+  document.getElementById('f-due-group').style.display      = t==='pending'  ? '' : 'none';
+  document.getElementById('f-bucket-group').style.display   = t==='expense'  ? '' : 'none';
+  document.getElementById('f-split-preview').style.display  = t==='received' ? '' : 'none';
+  if (t==='expense')  renderBucketSelector();
+  if (t==='received') renderSplitPreview();
+}
+
+function renderBucketSelector() {
+  document.getElementById('bucket-selector').innerHTML = S.buckets.map(b => `
+    <div class="bsg-item ${selectedBucketId===b.id?'selected':''}" onclick="selectBucket('${b.id}')">
+      <div class="bsg-dot" style="background:${b.color}"></div>
+      <div class="bsg-info"><div class="bsg-name">${b.icon} ${b.name}</div><div class="bsg-bal">${fmt(S.bucketBalances[b.id]||0)}</div></div>
+    </div>`).join('');
+}
+
+function selectBucket(id) { selectedBucketId = id; renderBucketSelector(); }
+
+function renderSplitPreview() {
+  const amt = parseFloat(document.getElementById('f-amount').value) || 0;
+  document.getElementById('ds-rows').innerHTML = S.buckets.map(b =>
+    `<div class="ds-row"><span>${b.icon} ${b.name} (${b.pct}%)</span><span>${fmt(amt*(b.pct/100))}</span></div>`
+  ).join('');
+}
+document.getElementById('f-amount').addEventListener('input', () => { if (currentType==='received') renderSplitPreview(); });
+
+function saveEntry() {
+  const desc   = document.getElementById('f-desc').value.trim();
+  const amount = parseFloat(document.getElementById('f-amount').value);
+  const due    = document.getElementById('f-due').value;
+  if (!desc)             { showToast('Add a description'); return; }
+  if (!amount || amount<=0) { showToast('Enter a valid amount'); return; }
+  if (currentType==='expense') {
+    if (!selectedBucketId) { showToast('Pick a bucket'); return; }
+    const bal = S.bucketBalances[selectedBucketId] || 0;
+    if (amount > bal) {
+      if (!confirm(`⚠️ This bucket only has ${fmt(bal)}. Spend anyway?\n\n(Only spend money you've received.)`)) return;
+    }
+    S.bucketBalances[selectedBucketId] = bal - amount;
+  }
+  const entry = { id:uid(), type:currentType, desc, amount,
+    bucketId: currentType==='expense' ? selectedBucketId : null,
+    dueDate:  currentType==='pending' ? due : null,
+    createdAt: new Date().toISOString() };
+  if (currentType==='received') {
+    S.buckets.forEach(b => { S.bucketBalances[b.id] = (S.bucketBalances[b.id]||0) + amount*(b.pct/100); });
+  }
+  S.entries.push(entry);
+  save(); closeDrawer(); renderAll();
+}
+
+// ═══════════════════════════════════
+// NAV
+// ═══════════════════════════════════
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.getElementById('nav-'+name).classList.add('active');
+  if (name==='settings') renderSettings();
+}
+
+function renderAll() { renderHeader(); renderBuckets(); renderIncome(); renderHistory(); }
+
+// ═══════════════════════════════════
+// INIT
+// ═══════════════════════════════════
+renderAll();
+updateDriveUI();
+
+// init Drive if already configured
+window.addEventListener('load', () => {
+  if (getClientId()) {
+    setTimeout(initGoogleAuth, 800); // wait for GSI to load
+  }
+});
+</script>
+</body>
+</html>
